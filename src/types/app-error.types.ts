@@ -2,27 +2,28 @@
  * Details about a specific error
  */
 export type ErrorDetail = {
-  field?: string;
+  path: string | string[];
   message: string;
-  code?: string;
   [key: string]: unknown;
 };
 
 /**
  * Response format for errors returned to clients
  */
-export interface ErrorResponse {
+export type ErrorResponse = {
   status: number;
   message: string;
   type: string;
   errorId?: string;
   details?: ErrorDetail[];
-}
+  stack?: string;
+  context?: Record<string, unknown>;
+};
 
 /**
  * Configuration options for creating an AppError
  */
-export interface AppErrorOptions {
+export type AppErrorOptions = {
   /**
    * Error message
    */
@@ -53,4 +54,4 @@ export interface AppErrorOptions {
    * Defaults to true for 4xx errors and false for 5xx errors
    */
   expose?: boolean;
-}
+};

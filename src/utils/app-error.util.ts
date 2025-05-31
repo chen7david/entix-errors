@@ -1,48 +1,48 @@
 import { randomUUID } from 'crypto';
 import { HTTP_ERROR_MESSAGES } from '@/constants/http.constants';
-import { AppErrorOptions, ErrorDetail, ErrorResponse } from '@/types/base-error.types';
+import { AppErrorOptions, ErrorDetail, ErrorResponse } from '@/types/app-error.types';
 
 /**
- * Environment configuration for the error class
- * This can be set once at application startup rather than checking process.env each time
+ * Environment configuration for error handling
+ * Set once at application startup for better performance
  */
-export const ErrorConfig = {
-  isDevelopment: false,
-  setDevelopmentMode(isDev: boolean): void {
-    this.isDevelopment = isDev;
-  },
-};
+export class ErrorConfig {
+  private static _isDevelopment = process.env.NODE_ENV === 'development';
+
+  static get isDevelopment(): boolean {
+    return this._isDevelopment;
+  }
+
+  static setDevelopmentMode(isDev: boolean): void {
+    this._isDevelopment = isDev;
+  }
+}
 
 /**
  * Base error class that extends the native Error class
  * Provides additional properties for error classification and handling
  */
-export class BaseError extends Error {
+export class AppError extends Error {
   readonly status: number;
   readonly errorId: string;
   readonly cause?: Error;
   readonly details: ErrorDetail[];
   readonly logContext: Record<string, unknown>;
-  readonly expose: boolean;
   readonly type: string;
+  readonly expose: boolean;
 
   /**
    * Create a BaseError with a message or options object.
-   * @param messageOrOptions Error message string or options object
+   * @param params Error message string or options object
    */
   constructor(message: string);
-  constructor(options?: AppErrorOptions);
-  constructor(messageOrOptions?: string | AppErrorOptions) {
-    let options: AppErrorOptions;
-    if (typeof messageOrOptions === 'string') {
-      options = { message: messageOrOptions };
-    } else {
-      options = messageOrOptions || {};
-    }
+  constructor(options: AppErrorOptions);
+  constructor(params: string | AppErrorOptions) {
+    const options = AppError.normalizeOptions(params);
     const status = options.status || 500;
     const message = options.message || HTTP_ERROR_MESSAGES[status] || 'Unknown Error';
+
     super(message);
-    this.name = this.constructor.name;
     this.status = status;
     this.errorId = randomUUID();
     this.cause = options.cause;
@@ -51,6 +51,16 @@ export class BaseError extends Error {
     this.expose = options.expose !== undefined ? options.expose : status < 500;
     this.type = this.constructor.name.replace(/Error$/, '').toLowerCase();
     Error.captureStackTrace(this, this.constructor);
+  }
+
+  /**
+   * Normalize constructor parameters into options object
+   */
+  private static normalizeOptions(messageOrOptions: string | AppErrorOptions): AppErrorOptions {
+    if (typeof messageOrOptions === 'string') {
+      return { message: messageOrOptions };
+    }
+    return messageOrOptions ?? {};
   }
 
   /**
@@ -74,6 +84,11 @@ export class BaseError extends Error {
     if (this.expose && this.details.length > 0) {
       errorResponse.details = this.details;
     }
+    // Include stack trace only in development mode
+    if (ErrorConfig.isDevelopment) {
+      errorResponse.stack = this.stack;
+      errorResponse.context = this.logContext;
+    }
 
     return errorResponse;
   }
@@ -83,7 +98,6 @@ export class BaseError extends Error {
    */
   toJSON(): Record<string, unknown> {
     const errorJson: Record<string, unknown> = {
-      name: this.name,
       message: this.message,
       status: this.status,
       errorId: this.errorId,
@@ -94,6 +108,7 @@ export class BaseError extends Error {
     // Include stack trace only in development mode
     if (ErrorConfig.isDevelopment) {
       errorJson.stack = this.stack;
+      errorJson.context = this.logContext;
     }
 
     return errorJson;

@@ -16,117 +16,94 @@ npm install @entix/errors
 - Client-safe error responses
 - Flexible error details for validation errors
 - Customizable error codes and HTTP status codes
+- Constructor overloading for all error classes
 
-## Usage
+## Quick Start
 
 ```typescript
-import {
-  BaseError,
-  CustomError,
-  ValidationError,
-  NotFoundError,
-  UnauthorizedError,
-  ErrorConfig,
-} from '@entix/errors';
+import { AppError, ErrorConfig, ValidationError } from '@entix/errors';
 
-// Set development mode for stack traces
+// Set development mode for detailed errors
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
 
-// Base error with flexible options
-throw new BaseError({
-  message: 'Something went wrong',
-  status: 500,
-  details: [{ field: 'id', message: 'Invalid ID format' }],
-  logContext: { requestId: '12345' },
-});
-
-// Custom error with simpler interface
-throw new CustomError('Something went wrong', {
-  status: 500,
-  code: 'INTERNAL_ERROR',
-  isOperational: true,
-});
-
-// Validation error with details
-throw new ValidationError('Validation failed', [
-  { field: 'email', message: 'Email is required' },
-  { field: 'password', message: 'Password must be at least 8 characters' },
-]);
-
-// Not found error
-throw new NotFoundError('User not found', 'user');
-
-// Unauthorized error
-throw new UnauthorizedError('Invalid credentials');
+// Basic error handling
+try {
+  // Some operation that might fail
+  throw new ValidationError('Invalid input data');
+} catch (error) {
+  if (error instanceof AppError) {
+    console.log(error.toResponse()); // Client-safe response
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
 ```
 
 ## Error Classes
 
-### BaseError
+### AppError (Base Error)
 
-Advanced base error class with flexible configuration.
-
-```typescript
-new BaseError(options);
-// or
-new BaseError(message);
-```
-
-- `message`: Error message
-- `status`: HTTP status code (default: 500)
-- `details`: Array of error details
-- `logContext`: Additional context for logging
-- `expose`: Whether to expose error details to clients (default: true for 4xx, false for 5xx)
-- `cause`: Original error that caused this error
-
-### CustomError
-
-Simplified error class that extends BaseError.
+The base error class with flexible configuration options.
 
 ```typescript
-new CustomError(message, options);
+// Simple constructor
+new AppError('Something went wrong');
+
+// With options
+new AppError({
+  message: 'Something went wrong',
+  status: 500,
+  details: [{ path: 'id', message: 'Invalid ID format' }],
+  logContext: { requestId: '12345' },
+  expose: false,
+});
 ```
 
-- `message`: Error message
-- `options.status`: HTTP status code (default: 500)
-- `options.code`: Error code for programmatic identification (default: 'INTERNAL_SERVER_ERROR')
-- `options.isOperational`: Whether this is an operational error that can be handled (default: true)
+### Specialized Error Classes
 
-### ValidationError
+#### HTTP Status Error Classes
 
-Error for validation failures.
+The library provides a set of specialized error classes for common HTTP status codes:
+
+- `BadRequestError` (400)
+- `UnauthorizedError` (401)
+- `ForbiddenError` (403)
+- `NotFoundError` (404)
+- `ConflictError` (409)
+- `ValidationError` (422)
+- `RateLimitError` (429)
+- `InternalError` (500)
+- `ServiceError` (503)
+
+All specialized errors support constructor overloading:
 
 ```typescript
-new ValidationError(message, errors);
+// Simple constructor with message
+new NotFoundError('User not found');
+
+// With options object
+new NotFoundError({
+  message: 'User not found',
+  details: [{ path: 'id', message: 'User with ID 123 does not exist' }],
+  logContext: { userId: '123' },
+});
 ```
 
-- `message`: Error message
-- `errors`: Array of validation errors with field and message (default: [])
+#### CustomError
 
-### NotFoundError
-
-Error for resource not found situations.
+The `CustomError` class provides additional properties for error classification:
 
 ```typescript
-new NotFoundError(message, resource);
+new CustomError('Permission denied', {
+  status: 403,
+  code: 'PERMISSION_DENIED',
+  isOperational: true,
+});
 ```
 
-- `message`: Error message (default: 'Resource not found')
-- `resource`: The type of resource that was not found (default: 'resource')
+## Error Configuration
 
-### UnauthorizedError
-
-Error for unauthorized access attempts.
-
-```typescript
-new UnauthorizedError(message);
-```
-
-- `message`: Error message (default: 'Unauthorized')
-
-## Environment Configuration
-
-To control when stack traces are included in error JSON representations:
+Control when stack traces are included in error responses:
 
 ```typescript
 import { ErrorConfig } from '@entix/errors';
@@ -135,9 +112,9 @@ import { ErrorConfig } from '@entix/errors';
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
 ```
 
-## Error Response Format
+## Client-Safe Response Format
 
-When using the `toResponse()` method, errors are transformed into a client-safe format:
+The `toResponse()` method provides a client-safe error representation:
 
 ```typescript
 {
@@ -145,10 +122,21 @@ When using the `toResponse()` method, errors are transformed into a client-safe 
   type: 'validation',
   message: 'Validation failed',
   details: [
-    { field: 'email', message: 'Email is required' }
+    { path: 'email', message: 'Email is required' }
   ]
 }
 ```
+
+## Error Serialization
+
+Errors can be serialized to JSON with the `toJSON()` method:
+
+```typescript
+const error = new ValidationError('Invalid input');
+console.log(JSON.stringify(error)); // Uses toJSON() internally
+```
+
+In development mode, stack traces are included in the JSON output.
 
 ## License
 

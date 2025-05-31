@@ -5,7 +5,7 @@
     "rootDir": "./src", // Root directory of the source files
     "declaration": true, // Generate declaration files
     "sourceMap": false, // Disable source maps for production builds
-    "removeComments": true // Remove comments in the output
+    "removeComments": false // Remove comments in the output
   },
   "include": ["src/**/*"], // Include only source files
   "exclude": ["node_modules", "dist", "test/**/*"] // Exclude test files and other unnecessary directories
