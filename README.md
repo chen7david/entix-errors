@@ -17,6 +17,7 @@ npm install @sentientarts/errors
 - Flexible error details for validation errors
 - Customizable error codes and HTTP status codes
 - Constructor overloading for all error classes
+- Integration with Zod for validation errors
 
 ## Quick Start
 
@@ -110,6 +111,41 @@ import { ErrorConfig } from '@sentientarts/errors';
 // Enable stack traces in development
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
 ```
+
+## Zod Integration
+
+The library provides built-in support for transforming [Zod](https://github.com/colinhacks/zod) validation errors into ValidationError instances:
+
+```typescript
+import { z } from 'zod';
+import { isZodError, fromZodError } from '@sentientarts/errors';
+
+// Define a Zod schema
+const userSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+try {
+  // Parse/validate data with Zod
+  const result = userSchema.parse({ email: 'invalid', password: '123' });
+  return result;
+} catch (error) {
+  // Check if it's a Zod error and transform it
+  if (isZodError(error)) {
+    // Transform Zod error into a ValidationError
+    throw fromZodError(error, 'Invalid user data');
+  }
+  throw error;
+}
+```
+
+The transformed error will include:
+
+- Status code 422 (Unprocessable Entity)
+- Properly formatted validation details for each field
+- Paths in dot notation (e.g., 'user.email')
+- Original error messages from Zod
 
 ## Client-Safe Response Format
 
