@@ -18,6 +18,7 @@ npm install @sentientarts/errors
 - Customizable error codes and HTTP status codes
 - Constructor overloading for all error classes
 - Integration with Zod for validation errors
+- AWS Cognito error handling
 
 ## Quick Start
 
@@ -112,7 +113,9 @@ import { ErrorConfig } from '@sentientarts/errors';
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
 ```
 
-## Zod Integration
+## Integrations
+
+### Zod Integration
 
 The library provides built-in support for transforming [Zod](https://github.com/colinhacks/zod) validation errors into ValidationError instances:
 
@@ -146,6 +149,53 @@ The transformed error will include:
 - Properly formatted validation details for each field
 - Paths in dot notation (e.g., 'user.email')
 - Original error messages from Zod
+
+### AWS Cognito Integration
+
+The library provides support for handling AWS Cognito errors and converting them into appropriate error types:
+
+```typescript
+import { isCognitoError, fromCognitoError } from '@sentientarts/errors';
+import {
+  CognitoIdentityProviderClient,
+  SignUpCommand,
+} from '@aws-sdk/client-cognito-identity-provider';
+
+const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
+
+async function registerUser(email: string, password: string) {
+  try {
+    const command = new SignUpCommand({
+      ClientId: 'your-client-id',
+      Username: email,
+      Password: password,
+    });
+
+    return await cognitoClient.send(command);
+  } catch (error) {
+    // Check if it's a Cognito error
+    if (isCognitoError(error)) {
+      // Transform to appropriate application error
+      throw fromCognitoError(error);
+    }
+    throw error;
+  }
+}
+```
+
+The transformer handles common Cognito error codes:
+
+| Cognito Error Code        | Transformed To    | HTTP Status |
+| ------------------------- | ----------------- | ----------- |
+| NotAuthorizedException    | UnauthorizedError | 401         |
+| UserNotFoundException     | NotFoundError     | 404         |
+| AccessDeniedException     | ForbiddenError    | 403         |
+| UsernameExistsException   | ConflictError     | 409         |
+| InvalidParameterException | ValidationError   | 422         |
+| LimitExceededException    | RateLimitError    | 429         |
+| (Other/Unknown)           | InternalError     | 500         |
+
+The original Cognito error is preserved in the `logContext` property for debugging purposes.
 
 ## Client-Safe Response Format
 
