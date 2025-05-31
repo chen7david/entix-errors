@@ -1,5 +1,5 @@
 {
-  "name": "@entix/errors",
+  "name": "@sentientarts/errors",
   "version": "0.0.1",
   "description": "Error handling utilities for Entix projects",
   "main": "dist/index.js",

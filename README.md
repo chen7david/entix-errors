@@ -1,11 +1,11 @@
-# @entix/errors
+# Sentient Arts Errors
 
-A TypeScript error handling library for Entix projects that provides standardized error classes with improved type safety and flexibility.
+A TypeScript error handling library for Sentient Arts projects that provides standardized error classes with improved type safety and flexibility.
 
 ## Installation
 
 ```bash
-npm install @entix/errors
+npm install @sentientarts/errors
 ```
 
 ## Features
@@ -21,7 +21,7 @@ npm install @entix/errors
 ## Quick Start
 
 ```typescript
-import { AppError, ErrorConfig, ValidationError } from '@entix/errors';
+import { AppError, ErrorConfig, ValidationError } from '@sentientarts/errors';
 
 // Set development mode for detailed errors
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
@@ -105,7 +105,7 @@ new CustomError('Permission denied', {
 Control when stack traces are included in error responses:
 
 ```typescript
-import { ErrorConfig } from '@entix/errors';
+import { ErrorConfig } from '@sentientarts/errors';
 
 // Enable stack traces in development
 ErrorConfig.setDevelopmentMode(process.env.NODE_ENV !== 'production');
