@@ -96,7 +96,6 @@ The `CustomError` class provides additional properties for error classification:
 ```typescript
 new CustomError('Permission denied', {
   status: 403,
-  code: 'PERMISSION_DENIED',
   isOperational: true,
 });
 ```
