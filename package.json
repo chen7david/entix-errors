@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc -p tsconfig.build.json && tsc-alias",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "test": "jest",
