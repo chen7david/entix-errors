@@ -56,12 +56,19 @@ export function fromCognitoError(
   | BadRequestError {
   const errorCode = error.code || '';
   const statusCode = error.$metadata?.httpStatusCode;
-  const message = error.message;
+  const message = error.message || '';
+  const normalizedMessage = message.toLowerCase();
 
   // Handle specific Cognito error codes
   switch (errorCode) {
     // Authentication and authorization errors
     case 'NotAuthorizedException':
+      if (normalizedMessage.includes('access token has expired')) {
+        return new UnauthorizedError({
+          message: 'Access token has expired',
+          logContext: { cognitoError: error },
+        });
+      }
       return new UnauthorizedError({
         message: message || 'Invalid credentials or user not authorized',
         logContext: { cognitoError: error },
@@ -124,44 +131,53 @@ export function fromCognitoError(
       });
 
     // Default case - use HTTP status code if available
-    default:
+    default: {
+      // Fallback message-based match
+      if (normalizedMessage.includes('access token has expired')) {
+        return new UnauthorizedError({
+          message: 'Access token has expired',
+          logContext: { cognitoError: error },
+        });
+      }
+
       if (statusCode) {
         if (statusCode >= 400 && statusCode < 500) {
-          if (statusCode === 400) {
-            return new BadRequestError({
-              message: message || 'Bad request',
-              logContext: { cognitoError: error },
-            });
-          } else if (statusCode === 401) {
-            return new UnauthorizedError({
-              message: message || 'Unauthorized',
-              logContext: { cognitoError: error },
-            });
-          } else if (statusCode === 403) {
-            return new ForbiddenError({
-              message: message || 'Forbidden',
-              logContext: { cognitoError: error },
-            });
-          } else if (statusCode === 404) {
-            return new NotFoundError({
-              message: message || 'Not found',
-              logContext: { cognitoError: error },
-            });
-          } else if (statusCode === 409) {
-            return new ConflictError({
-              message: message || 'Conflict',
-              logContext: { cognitoError: error },
-            });
-          } else if (statusCode === 429) {
-            return new RateLimitError({
-              message: message || 'Too many requests',
-              logContext: { cognitoError: error },
-            });
-          } else {
-            return new BadRequestError({
-              message: message || 'Client error',
-              logContext: { cognitoError: error },
-            });
+          switch (statusCode) {
+            case 400:
+              return new BadRequestError({
+                message: message || 'Bad request',
+                logContext: { cognitoError: error },
+              });
+            case 401:
+              return new UnauthorizedError({
+                message: message || 'Unauthorized',
+                logContext: { cognitoError: error },
+              });
+            case 403:
+              return new ForbiddenError({
+                message: message || 'Forbidden',
+                logContext: { cognitoError: error },
+              });
+            case 404:
+              return new NotFoundError({
+                message: message || 'Not found',
+                logContext: { cognitoError: error },
+              });
+            case 409:
+              return new ConflictError({
+                message: message || 'Conflict',
+                logContext: { cognitoError: error },
+              });
+            case 429:
+              return new RateLimitError({
+                message: message || 'Too many requests',
+                logContext: { cognitoError: error },
+              });
+            default:
+              return new BadRequestError({
+                message: message || 'Client error',
+                logContext: { cognitoError: error },
+              });
           }
         } else {
           return new InternalError({
@@ -176,5 +192,6 @@ export function fromCognitoError(
         message: 'An error occurred with the authentication service',
         logContext: { cognitoError: error },
       });
+    }
   }
 }

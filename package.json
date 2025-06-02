@@ -1,6 +1,6 @@
 {
   "name": "@sentientarts/errors",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Error handling utilities for Entix projects",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
